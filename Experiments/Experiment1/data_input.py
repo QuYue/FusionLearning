@@ -8,3 +8,4 @@
 @Desc    :   Input data.
 """
 import torch
+print(1)
