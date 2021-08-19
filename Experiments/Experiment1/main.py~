@@ -7,6 +7,3 @@ sys.path.append("../../")
 import Fusion
 # print( Fusion.help())
 help(Fusion)
-
-import torch
-
