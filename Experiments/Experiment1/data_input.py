@@ -228,16 +228,16 @@ def data_split(data, target, test_size=0.2, random_state=0):
     return [[X_train, y_train], [X_test, y_test]]
 
 #%% Class
-class DATA():
+class DataConfig():
     def __init__(self):
         self.download = True
         self.path = None
 
-class DATASET():
+class DataSetConfig():
     def __init__(self):
-        self.MNIST = DATA()
+        self.MNIST = DataConfig()
         self.MNIST.path='../../Data/MNIST'
-        self.CIFAR10 = DATA()
+        self.CIFAR10 = DataConfig()
         self.CIFAR10.path='../../Data/CIFIAR10'
         
         self.data_dict = {1:'Disjoint MNIST', 
@@ -260,7 +260,7 @@ class DATASET():
 if __name__ == "__main__":
     class PARM():
         def __init__(self):
-            self.data = DATASET()
+            self.data = DataSetConfig()
             self.dataset_ID = 2
 
         @property

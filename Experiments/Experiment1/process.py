@@ -12,7 +12,7 @@
 import torch
 
 #%%
-def training_process(Task, loss_func,Parm):
+def training_process(Task, loss_func, Parm):
     true_amount = 0; total_amount = 0
     Task.model.train()
     for step, [x, y] in enumerate(Task.train_loader):
