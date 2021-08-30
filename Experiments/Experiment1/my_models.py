@@ -23,15 +23,18 @@ class FNN(nn.Module):
         x = self.layer1(x)
         return x
 
+    # def set(self):
+        # self.train = 
+
 class FNN2(nn.Module):
     def __init__(self):
         super(FNN2, self).__init__()
         self.z = nn.Sequential(
-                nn.Linear(28*28, 1000),
+                nn.Linear(28*28, 20),
                 nn.ReLU(),
-                nn.Linear(1000, 100),
-                nn.ReLU(),
-                nn.Linear(100, 10),
+                # nn.Linear(20, 10),
+                # nn.ReLU(),
+                nn.Linear(20, 10),
                 nn.ReLU(),)
 
     def forward(self, x):
@@ -53,11 +56,11 @@ class CNN(nn.Module):
             nn.MaxPool2d(kernel_size=2),  
         )
         self.conv2 = nn.Sequential(  
-            nn.Conv2d(16, 32, 5, 1, 2), 
+            nn.Conv2d(16, 16, 3, 1, 1), 
             nn.ReLU(),  
             nn.MaxPool2d(2),  
         )
-        self.out = nn.Linear(32 * 7 * 7, 10)   
+        self.out = nn.Linear(16 * 7 * 7, 10)   
 
     def forward(self, x):
         x = self.conv1(x)

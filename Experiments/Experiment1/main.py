@@ -16,28 +16,34 @@ import torch.utils.data as Data
 import matplotlib.pyplot as plt
 import time
 from data_input import data_input, data_split, DataSetConfig
-from Models import *
+from my_models import *
 from process import *
 import sys
 sys.path.append('../..') # add the path which includes the packages
 from Fusion import Fusion
 
-# %%
+class Subclass():
+    pass
+
+# %% SuperParameters
 class PARM():
     def __init__(self):
         self.data = DataSetConfig()
         self.dataset_ID = 1
         self.test_size = 0.2
         self.batch_size = 5000
-        self.epoch = 10
+        self.epoch = 100
         self.epoch2 = 20
         self.use_device = 'cuda:0' # 'cpu' or 'cuda:0', 'cuda:1'...(GPU ID)
         self.random_seed = 1
-        self.model =  FNN
+        self.model = FNN2
         self.optimizer = torch.optim.SGD
         self.optimizer2 = torch.optim.Adam
         self.lr = 0.1
-        self.lr2 = 0.001
+        self.lr2 = 0.1
+        self.fusion = Subclass()
+        self.fusion.samples = 5000
+        self.fusion.pinvrcond = 1e-2
         self.time = dict()
         self.result = {'SoloNet':{}, 'FusionNet':{}, 'Origin':{}}
 
@@ -46,7 +52,7 @@ class PARM():
         return self.data.data_dict[self.dataset_ID]  
     @property
     def task_number(self):
-        return self.data.tasks_num[self.dataset_name]            
+        return self.data.tasks_num[self.dataset_name] 
 
 Parm = PARM()
 
@@ -110,7 +116,7 @@ for i in range(Parm.task_number):
                                         batch_size=Parm.batch_size,
                                         shuffle=True)
     task.test_loader = Data.DataLoader(dataset=task.test, 
-                                       batch_size=1000,
+                                       batch_size=Parm.fusion.samples,
                                        shuffle=False)
     Solo_tasks.append(task)
 
@@ -148,28 +154,27 @@ for i in range(Parm.task_number):
 loss_func = torch.nn.CrossEntropyLoss()
 
 # %% Origin Training
-print('Origin Training')
-name_t = 'Origin'
-Origin_task.model =  Model().to(Parm.device)
-Origin_task.optimizer = Parm.optimizer2(Origin_task.model.parameters(), lr=Parm.lr2)
-Origin_task.clear()
-start = time.time()
-for epoch in range(Parm.epoch2):
-    print(f"Epoch {epoch}", end=' ')
-    training_process(Origin_task, loss_func, Parm)
-    testing_process(Origin_task, Parm)
-    Origin_task.time.append(time.time()-start)
-    print(f"| task {Origin_task.ID}: {Origin_task.test_accuracy[Origin_task.ID][-1]}")
-finish = time.time()
-Parm.time[name_t] = Origin_task.time
-Parm.result[name_t] = Origin_task.test_accuracy
-print(f"{name_t}: {Parm.time[name_t][-1]}s")
-
+# print('Origin Training')
+# name_t = 'Origin'
+# Origin_task.model =  Model().to(Parm.device)
+# Origin_task.optimizer = Parm.optimizer2(Origin_task.model.parameters(), lr=Parm.lr2)
+# Origin_task.clear()
+# start = time.time()
+# for epoch in range(Parm.epoch2):
+#     print(f"Epoch {epoch+1}", end=' ')
+#     training_process(Origin_task, loss_func, Parm)
+#     testing_process(Origin_task, Parm)
+#     Origin_task.time.append(time.time()-start)
+#     print(f"| task {Origin_task.ID}: {Origin_task.test_accuracy[Origin_task.ID][-1]}")
+# finish = time.time()
+# Parm.time[name_t] = Origin_task.time
+# Parm.result[name_t] = Origin_task.test_accuracy
+# print(f"{name_t}: {Parm.time[name_t][-1]}s")
 
 # %% SoloNet Training
 start = time.time()
 for epoch in range(Parm.epoch):
-    print(f"Epoch {epoch}", end=' ')
+    print(f"Epoch {epoch+1}", end=' ')
     for task in Solo_tasks:
         training_process(task, loss_func, Parm)
         testing_process(task, Parm)
@@ -183,103 +188,18 @@ finish = time.time()
 Parm.time['SoloNet'] = finish - start
 
 
-# %%
-class Grad():
-    def __init__(self, parameters, device):
-        self.numel = parameters.numel()
-        self.shape = parameters.shape
-        self.hessian = torch.zeros([self.numel, self.numel]).to(device)
-
-class HessianMatrix():
-    def __init__(self, parameters, device):
-        self.numel = parameters.numel()
-        self.shape = parameters.shape
-        self.hessian = torch.zeros([self.numel, self.numel]).to(device)
-
-    def add(self, grad):
-        self.hessian += torch.mm(grad.T, grad)
-
-    def __repr__(self):
-        p = f"{{Hessian | numel:{self.numel}, shape:{[int(i) for i in self.shape]}}|"
-        return p
-
-class HessianMatrices(list):
-    def stack(self, new_HessianMatrix):
-        assert self.__len__() == len(new_HessianMatrix)
-        for i in range(self.__len__()):
-            i = torch.stack([self[i], new_HessianMatrix[i]])
-
-
-
-
-class Material():
-    def __init__(self, model):
-        self.model = model
-        self.parameters = list(self.model.parameters())
-        self.device = self.parameters[0].device
-        self.count = 0
-        self.blocks_num = len(self.parameters)
-        self.create_Hessian_list()
-
-    def create_Hessian_list(self):
-        self.Hessian_list = []
-        for i in self.parameters:
-            p = HessianMatrix(i, self.device)
-            self.Hessian_list.append(p)
-        
-    def add(self, grad):
-        self.count += 1
-        for i in range(len(grad)):
-            g = grad[i].data.view(1, -1)
-            self.Hessian_list[i].add(g)
-
-    def update_block(self, new_parameters, block_id):
-        block = self.parameters[block_id]
-        assert new_parameters.numel() == block.numel
-        block = new_parameters.view(block.shape)
-
-
-
-def fusion(Tasks, Parm, device=torch.device("cpu"), mode=0):
-    Hessian = []
-    models = []
-    for n, task in enumerate(Tasks):
-        print(f'Task {n}')
-        d_loader = Data.DataLoader(dataset=task.train,
-                                        batch_size=1000,
-                                        shuffle=True)
-        for data, _ in d_loader:
-            data = data.to(device)
-            break
-        model = task.model.to(device)
-        models.append(model)
-
-        Hessian.append(Hessian_Matrix(model))
-        if mode == 0:
-            for i in range(data.shape[0]):
-                d = data[i:i+1]
-                y = model(d)
-                y = y.view(1, -1)
-                grad = []
-                for j in range(y.shape[1]):
-                    grad.append(torch.autograd.grad(y[0, j], model.parameters(), retain_graph=True, create_graph=True))
-                
-                Hessian[-1].add(grad)
-
-        elif mode == 1:
-            y = model(data)
-            y = y.view(y.shape[0], -1)
-            for i in range(y.shape[0]):
-                for j in range(y.shape[1]):
-                    grad = torch.autograd.grad(y[i, j], model.parameters(), retain_graph=True, create_graph=True)
-                    # Hessian[-1].add(grad)
-    print('Finish.')
-    return Hessian
-
 #%%
 start = time.time()
-H = fusion(Solo_tasks, Parm, Parm.device, mode=0)
-print(time.time()-start)
+fusion_materials = Fusion.fusion_prepare(Solo_tasks, Parm, Parm.device, mode=0)
+end = time.time()
+print(end-start)
+d = Fusion.fusion(fusion_materials, FusionNet,Parm)
+end2 = time.time()
+print(end2-end)
 
-# %%
-d.stack(d)
+#%%
+Fusion_task.model =  d.model
+testing_process(Fusion_task, Parm)
+print(Fusion_task.test_accuracy)
+
+#%%
