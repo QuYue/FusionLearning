@@ -23,8 +23,6 @@ class FNN(nn.Module):
         x = self.layer1(x)
         return x
 
-    # def set(self):
-        # self.train = 
 
 class FNN2(nn.Module):
     def __init__(self):
