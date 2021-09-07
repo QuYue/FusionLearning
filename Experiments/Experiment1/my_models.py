@@ -54,11 +54,11 @@ class CNN(nn.Module):
             nn.MaxPool2d(kernel_size=2),  
         )
         self.conv2 = nn.Sequential(  
-            nn.Conv2d(16, 16, 3, 1, 1), 
+            nn.Conv2d(16, 32, 5, 1, 2), 
             nn.ReLU(),  
             nn.MaxPool2d(2),  
         )
-        self.out = nn.Linear(16 * 7 * 7, 10)   
+        self.out = nn.Linear(32 * 7 * 7, 10)   
 
     def forward(self, x):
         x = self.conv1(x)

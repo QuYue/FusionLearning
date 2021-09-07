@@ -36,7 +36,7 @@ class PARM():
         self.epoch2 = 20
         self.use_device = 'cuda:0' # 'cpu' or 'cuda:0', 'cuda:1'...(GPU ID)
         self.random_seed = 1
-        self.model = FNN2
+        self.model = CNN
         self.optimizer = torch.optim.SGD
         self.optimizer2 = torch.optim.Adam
         self.lr = 0.1
