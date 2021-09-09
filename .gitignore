@@ -1,2 +1,4 @@
 *.pyc
 /Data/
+Experiments/Experiment1/.ipynb_checkpoints/
+.ipynb_checkpoints/

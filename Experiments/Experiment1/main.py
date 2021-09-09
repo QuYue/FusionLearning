@@ -5,7 +5,7 @@
 @Time    :   2021/08/22 15:02:00
 @Author  :   QuYue 
 @Email   :   quyue1541@gmail.com
-@Desc    :   main function. 
+@Desc    :   main function. .
 '''
 
 #%% Import Packages
